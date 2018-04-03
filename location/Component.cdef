@@ -8,8 +8,8 @@ requires:
 {
   api:
   {
-    le_posCtrl = ${LEGATO_ROOT}/interfaces/positioning/le_posCtrl.api
-    le_pos = ${LEGATO_ROOT}/interfaces/positioning/le_pos.api
+    le_posCtrl = positioning/le_posCtrl.api
+    le_pos = positioning/le_pos.api
   }
 }
 
