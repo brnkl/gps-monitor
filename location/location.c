@@ -11,9 +11,13 @@
 
 
 static le_posCtrl_ActivationRef_t posCtrlRef;
-static double lat, lon, horizAccuracy;
-static uint64_t lastReadingDatetime = 0;
 static le_timer_Ref_t pollingTimer;
+static struct {
+    double lat;
+    double lon;
+    double horizAccuracy;
+    uint64_t datetime;
+} lastReading;
 
 /**
  * Determine if we have a reading
@@ -21,7 +25,7 @@ static le_timer_Ref_t pollingTimer;
  * (other things make factor in here down the road)
  */
 static bool hasReading() {
-  return lastReadingDatetime != 0;
+  return lastReading.datetime != 0;
 }
 
 /**
@@ -38,14 +42,14 @@ static bool canGetLocation() {
 le_result_t brnkl_gps_getCurrentLocation(double* latitude,
                                          double* longitude,
                                          double* horizontalAccuracy,
-                                         uint64_t* lastReading) {
+                                         uint64_t* readingTimestamp) {
   if (!canGetLocation()) {
     return LE_UNAVAILABLE;
   }
-  *latitude = lat;
-  *longitude = lon;
-  *horizontalAccuracy = horizAccuracy;
-  *lastReading = lastReadingDatetime;
+  *latitude = lastReading.lat;
+  *longitude = lastReading.lon;
+  *horizontalAccuracy = lastReading.horizAccuracy;
+  *readingTimestamp = lastReading.datetime;
   return LE_OK;
 }
 
@@ -64,13 +68,14 @@ static void getLocation(le_timer_Ref_t timerRef) {
   bool resOk = result == LE_OK;
   if (resOk && isAccurate) {
     double denom = powf(10, GPS_DECIMAL_SHIFT);  // divide by this
-    lat = ((double)rawLat) / denom;
-    lon = ((double)rawLon) / denom;
+    lastReading.lat = ((double)rawLat) / denom;
+    lastReading.lon = ((double)rawLon) / denom;
     // no conversion required for horizontal accuracy
-    horizAccuracy = (double)rawHoriz;
-    lastReadingDatetime = GetCurrentTimestamp();
+    lastReading.horizAccuracy = (double)rawHoriz;
+    lastReading.datetime = GetCurrentTimestamp();
     LE_INFO("Got reading...");
-    LE_INFO("lat: %f, long: %f, horiz: %f", lat, lon, horizAccuracy);
+    LE_INFO("lat: %f, long: %f, horiz: %f",
+            lastReading.lat, lastReading.lon, lastReading.horizAccuracy);
     le_timer_SetMsInterval(timerRef, POLL_PERIOD_SEC * 1000);
   } else {
     if (!isAccurate && resOk) {
