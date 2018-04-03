@@ -1,0 +1,28 @@
+cflags:
+{
+  -std=c99
+  -I$BRNKL_ROOT/apps/util
+}
+
+requires:
+{
+  api:
+  {
+    le_posCtrl = ${LEGATO_ROOT}/interfaces/positioning/le_posCtrl.api
+    le_pos = ${LEGATO_ROOT}/interfaces/positioning/le_pos.api
+  }
+}
+
+provides:
+{
+  api:
+  {
+    $CURDIR/../brnkl_gps.api
+  }
+}
+
+sources:
+{
+  location.c
+  $BRNKL_ROOT/apps/util/util.c
+}
