@@ -84,14 +84,15 @@ static void getLocation(le_timer_Ref_t timerRef) {
  * was run in a while(true) that sleeps,
  * the IPC caller would be blocked indefinitely
  */
-static le_result_t gps_init() {
+static void gps_init() {
+  posCtrlRef = le_posCtrl_Request();
+  LE_FATAL_IF(posCtrlRef == NULL, "Couldn't activate positioning");
+
   pollingTimer = le_timer_Create("GPS polling timer");
   le_timer_SetHandler(pollingTimer, getLocation);
   le_timer_SetRepeat(pollingTimer, 1);
   le_timer_SetMsInterval(pollingTimer, 0);
-  posCtrlRef = le_posCtrl_Request();
   le_timer_Start(pollingTimer);
-  return posCtrlRef != NULL ? LE_OK : LE_UNAVAILABLE;
 }
 
 COMPONENT_INIT {
