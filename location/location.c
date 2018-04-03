@@ -5,26 +5,29 @@
 
 le_posCtrl_ActivationRef_t posCtrlRef;
 double lat, lon, horizAccuracy;
-// we initially set these pointers to null
-// so we can tell if there has never been a reading
-double *latPtr = NULL, *lonPtr = NULL, *horizAccuracyPtr = NULL;
 uint64_t lastReadingDatetime = 0;
 le_timer_Ref_t pollingTimer;
 
+/**
+ * Determine if we have a reading
+ *
+ * (other things make factor in here down the road)
+ */
 bool hasReading() {
-  return latPtr != NULL && lonPtr != NULL && horizAccuracyPtr != NULL;
+  return lastReadingDatetime != 0;
 }
 
+/**
+ * Determine if we can provide an IPC caller
+ * with a location
+ */
 bool canGetLocation() {
   return hasReading() && posCtrlRef != NULL;
 }
 
-void setLocationPtrs() {
-  horizAccuracyPtr = &horizAccuracy;
-  latPtr = &lat;
-  lonPtr = &lon;
-}
-
+/**
+ * IPC function to get location
+ */
 le_result_t brnkl_gps_getCurrentLocation(double* latitude,
                                          double* longitude,
                                          double* horizontalAccuracy,
@@ -32,28 +35,19 @@ le_result_t brnkl_gps_getCurrentLocation(double* latitude,
   if (!canGetLocation()) {
     return LE_UNAVAILABLE;
   }
-  *latitude = *latPtr;
-  *longitude = *lonPtr;
-  *horizontalAccuracy = *horizAccuracyPtr;
+  *latitude = lat;
+  *longitude = lon;
+  *horizontalAccuracy = horizAccuracy;
   *lastReading = lastReadingDatetime;
   return LE_OK;
 }
 
 /**
-  * Attempts to use the GPS to find the current latitude, longitude and
- * horizontal accuracy within
-  * the given timeout constraints.
-  *
-  * @return
-  *      - LE_OK on success
-  *      - LE_UNAVAILABLE if positioning services are unavailable
-  *      - LE_TIMEOUT if the timeout expires before successfully acquiring the
- * location
-  *
-  * @note
-  *      Blocks until the location has been identified or the timeout has
- * occurred.
-  */
+ * Main polling function
+ *
+ * Change MIN_REQUIRED_HORIZ_ACCURACY_METRES if
+ * a more/less accurate fix is required
+ */
 void getLocation(le_timer_Ref_t timerRef) {
   le_timer_Stop(timerRef);
   LE_DEBUG("Checking GPS position");
@@ -67,11 +61,7 @@ void getLocation(le_timer_Ref_t timerRef) {
     lon = ((double)rawLon) / denom;
     // no conversion required for horizontal accuracy
     horizAccuracy = (double)rawHoriz;
-    // set these so we know there is a reading
     lastReadingDatetime = GetCurrentTimestamp();
-    if (!hasReading()) {
-      setLocationPtrs();
-    }
     LE_INFO("Got reading...");
     LE_INFO("lat: %f, long: %f, horiz: %f", lat, lon, horizAccuracy);
     le_timer_SetMsInterval(timerRef, POLL_PERIOD_SEC * 1000);
@@ -86,6 +76,14 @@ void getLocation(le_timer_Ref_t timerRef) {
   le_timer_Start(timerRef);
 }
 
+/**
+ * Perform all required setup
+ *
+ * Note that we run this on a timer to avoid
+ * blocking up the main (only) thread. If this
+ * was run in a while(true) that sleeps,
+ * the IPC caller would be blocked indefinitely
+ */
 le_result_t gps_init() {
   pollingTimer = le_timer_Create("GPS polling timer");
   le_timer_SetHandler(pollingTimer, getLocation);
