@@ -1,7 +1,6 @@
 #include "location.h"
 #include "interfaces.h"
 #include "legato.h"
-#include "util.h"
 
 le_posCtrl_ActivationRef_t posCtrlRef;
 double lat, lon, horizAccuracy;
