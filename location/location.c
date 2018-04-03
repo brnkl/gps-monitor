@@ -3,17 +3,17 @@
 #include "legato.h"
 #include "util.h"
 
-le_posCtrl_ActivationRef_t posCtrlRef;
-double lat, lon, horizAccuracy;
-uint64_t lastReadingDatetime = 0;
-le_timer_Ref_t pollingTimer;
+static le_posCtrl_ActivationRef_t posCtrlRef;
+static double lat, lon, horizAccuracy;
+static uint64_t lastReadingDatetime = 0;
+static le_timer_Ref_t pollingTimer;
 
 /**
  * Determine if we have a reading
  *
  * (other things make factor in here down the road)
  */
-bool hasReading() {
+static bool hasReading() {
   return lastReadingDatetime != 0;
 }
 
@@ -21,7 +21,7 @@ bool hasReading() {
  * Determine if we can provide an IPC caller
  * with a location
  */
-bool canGetLocation() {
+static bool canGetLocation() {
   return hasReading() && posCtrlRef != NULL;
 }
 
@@ -48,7 +48,7 @@ le_result_t brnkl_gps_getCurrentLocation(double* latitude,
  * Change MIN_REQUIRED_HORIZ_ACCURACY_METRES if
  * a more/less accurate fix is required
  */
-void getLocation(le_timer_Ref_t timerRef) {
+static void getLocation(le_timer_Ref_t timerRef) {
   le_timer_Stop(timerRef);
   LE_DEBUG("Checking GPS position");
   int32_t rawLat, rawLon, rawHoriz;
@@ -84,7 +84,7 @@ void getLocation(le_timer_Ref_t timerRef) {
  * was run in a while(true) that sleeps,
  * the IPC caller would be blocked indefinitely
  */
-le_result_t gps_init() {
+static le_result_t gps_init() {
   pollingTimer = le_timer_Create("GPS polling timer");
   le_timer_SetHandler(pollingTimer, getLocation);
   le_timer_SetRepeat(pollingTimer, 1);
