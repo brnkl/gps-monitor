@@ -1,6 +1,7 @@
 cflags:
 {
   -std=c99
+  -I$BRNKL_ROOT/apps/util
 }
 
 requires:
@@ -23,4 +24,5 @@ provides:
 sources:
 {
   location.c
+  $BRNKL_ROOT/apps/util/util.c
 }
