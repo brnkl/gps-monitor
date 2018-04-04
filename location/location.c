@@ -1,26 +1,38 @@
-#include "location.h"
 #include "interfaces.h"
 #include "legato.h"
+#include "util.h"
 
-le_posCtrl_ActivationRef_t posCtrlRef;
-double lat, lon, horizAccuracy;
-uint64_t lastReadingDatetime = 0;
-le_timer_Ref_t pollingTimer;
+// Used to convert GPS int to double
+#define GPS_DECIMAL_SHIFT 6
+// Used for distance calculations
+#define MIN_REQUIRED_HORIZ_ACCURACY_METRES 10  // TODO validate that this is realistic
+#define POLL_PERIOD_SEC 2 * 60 // 2 minutes
+#define RETRY_PERIOD_SEC 1
+
+
+static le_posCtrl_ActivationRef_t posCtrlRef;
+static le_timer_Ref_t pollingTimer;
+static struct {
+    double lat;
+    double lon;
+    double horizAccuracy;
+    uint64_t datetime;
+} lastReading;
 
 /**
  * Determine if we have a reading
  *
  * (other things make factor in here down the road)
  */
-bool hasReading() {
-  return lastReadingDatetime != 0;
+static bool hasReading() {
+  return lastReading.datetime != 0;
 }
 
 /**
  * Determine if we can provide an IPC caller
  * with a location
  */
-bool canGetLocation() {
+static bool canGetLocation() {
   return hasReading() && posCtrlRef != NULL;
 }
 
@@ -30,14 +42,14 @@ bool canGetLocation() {
 le_result_t brnkl_gps_getCurrentLocation(double* latitude,
                                          double* longitude,
                                          double* horizontalAccuracy,
-                                         uint64_t* lastReading) {
+                                         uint64_t* readingTimestamp) {
   if (!canGetLocation()) {
     return LE_UNAVAILABLE;
   }
-  *latitude = lat;
-  *longitude = lon;
-  *horizontalAccuracy = horizAccuracy;
-  *lastReading = lastReadingDatetime;
+  *latitude = lastReading.lat;
+  *longitude = lastReading.lon;
+  *horizontalAccuracy = lastReading.horizAccuracy;
+  *readingTimestamp = lastReading.datetime;
   return LE_OK;
 }
 
@@ -47,7 +59,7 @@ le_result_t brnkl_gps_getCurrentLocation(double* latitude,
  * Change MIN_REQUIRED_HORIZ_ACCURACY_METRES if
  * a more/less accurate fix is required
  */
-void getLocation(le_timer_Ref_t timerRef) {
+static void getLocation(le_timer_Ref_t timerRef) {
   le_timer_Stop(timerRef);
   LE_DEBUG("Checking GPS position");
   int32_t rawLat, rawLon, rawHoriz;
@@ -56,13 +68,14 @@ void getLocation(le_timer_Ref_t timerRef) {
   bool resOk = result == LE_OK;
   if (resOk && isAccurate) {
     double denom = powf(10, GPS_DECIMAL_SHIFT);  // divide by this
-    lat = ((double)rawLat) / denom;
-    lon = ((double)rawLon) / denom;
+    lastReading.lat = ((double)rawLat) / denom;
+    lastReading.lon = ((double)rawLon) / denom;
     // no conversion required for horizontal accuracy
-    horizAccuracy = (double)rawHoriz;
-    lastReadingDatetime = GetCurrentTimestamp();
+    lastReading.horizAccuracy = (double)rawHoriz;
+    lastReading.datetime = GetCurrentTimestamp();
     LE_INFO("Got reading...");
-    LE_INFO("lat: %f, long: %f, horiz: %f", lat, lon, horizAccuracy);
+    LE_INFO("lat: %f, long: %f, horiz: %f",
+            lastReading.lat, lastReading.lon, lastReading.horizAccuracy);
     le_timer_SetMsInterval(timerRef, POLL_PERIOD_SEC * 1000);
   } else {
     if (!isAccurate && resOk) {
@@ -83,14 +96,15 @@ void getLocation(le_timer_Ref_t timerRef) {
  * was run in a while(true) that sleeps,
  * the IPC caller would be blocked indefinitely
  */
-le_result_t gps_init() {
+static void gps_init() {
+  posCtrlRef = le_posCtrl_Request();
+  LE_FATAL_IF(posCtrlRef == NULL, "Couldn't activate positioning");
+
   pollingTimer = le_timer_Create("GPS polling timer");
   le_timer_SetHandler(pollingTimer, getLocation);
   le_timer_SetRepeat(pollingTimer, 1);
   le_timer_SetMsInterval(pollingTimer, 0);
-  posCtrlRef = le_posCtrl_Request();
   le_timer_Start(pollingTimer);
-  return posCtrlRef != NULL ? LE_OK : LE_UNAVAILABLE;
 }
 
 COMPONENT_INIT {
