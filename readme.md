@@ -10,6 +10,16 @@ Monitoring GPS location is cool, but blocking up other important calls is way le
 
 You are free to copy and runs this code however you would like, however we recommend using a [Git submodule](https://git-scm.com/docs/git-submodule) to stay up to date.
 
+### Cloning
+
+Be sure you clone the submodules as well using `git clone --recurse-submodules -j8 https://github.com/brnkl/mangoh-gps-monitor`
+
+### Building
+
+Only tested on the WP85, so we have not included a Make recipe for other WP series chips yet. Using another chip? Submit a pull request or issue!
+
+* WP85: `make wp85`
+
 ### Bindings 👋
 
 To use this app, setup the required [Legato IPC bindings](http://legato.io/legato-docs/latest/basicIPC.html).
