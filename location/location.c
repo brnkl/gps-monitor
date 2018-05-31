@@ -8,7 +8,6 @@
 #define POLL_PERIOD_SEC 2 * 60 // 2 minutes
 #define RETRY_PERIOD_SEC 1
 
-
 static le_posCtrl_ActivationRef_t posCtrlRef;
 static le_timer_Ref_t pollingTimer;
 static struct {
@@ -63,8 +62,9 @@ static void getLocation(le_timer_Ref_t timerRef) {
   LE_DEBUG("Checking GPS position");
   int32_t rawLat, rawLon, rawHoriz;
   le_result_t result = le_pos_Get2DLocation(&rawLat, &rawLon, &rawHoriz);
+  if (posCtrlRef == NULL) posCtrlRef = le_posCtrl_Request();
   bool isAccurate = rawHoriz <= MIN_REQUIRED_HORIZ_ACCURACY_METRES;
-  bool resOk = result == LE_OK;
+  bool resOk = result == LE_OK && posCtrlRef != NULL;
   if (resOk && isAccurate) {
     double denom = powf(10, GPS_DECIMAL_SHIFT);  // divide by this
     lastReading.lat = ((double)rawLat) / denom;
@@ -97,8 +97,6 @@ static void getLocation(le_timer_Ref_t timerRef) {
  */
 static void gps_init() {
   posCtrlRef = le_posCtrl_Request();
-  LE_FATAL_IF(posCtrlRef == NULL, "Couldn't activate positioning");
-
   pollingTimer = le_timer_Create("GPS polling timer");
   le_timer_SetHandler(pollingTimer, getLocation);
   le_timer_SetRepeat(pollingTimer, 1);
