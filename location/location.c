@@ -4,17 +4,18 @@
 
 // Used to convert GPS int to double
 #define GPS_DECIMAL_SHIFT 6
-#define MIN_REQUIRED_HORIZ_ACCURACY_METRES 10  // TODO validate that this is realistic
-#define POLL_PERIOD_SEC 2 * 60 // 2 minutes
+#define MIN_REQUIRED_HORIZ_ACCURACY_METRES \
+  10                            // TODO validate that this is realistic
+#define POLL_PERIOD_SEC 2 * 60  // 2 minutes
 #define RETRY_PERIOD_SEC 1
 
 static le_posCtrl_ActivationRef_t posCtrlRef;
 static le_timer_Ref_t pollingTimer;
 static struct {
-    double lat;
-    double lon;
-    double horizAccuracy;
-    uint64_t datetime;
+  double lat;
+  double lon;
+  double horizAccuracy;
+  uint64_t datetime;
 } lastReading;
 
 /**
@@ -62,7 +63,8 @@ static void getLocation(le_timer_Ref_t timerRef) {
   LE_DEBUG("Checking GPS position");
   int32_t rawLat, rawLon, rawHoriz;
   le_result_t result = le_pos_Get2DLocation(&rawLat, &rawLon, &rawHoriz);
-  if (posCtrlRef == NULL) posCtrlRef = le_posCtrl_Request();
+  if (posCtrlRef == NULL)
+    posCtrlRef = le_posCtrl_Request();
   bool isAccurate = rawHoriz <= MIN_REQUIRED_HORIZ_ACCURACY_METRES;
   bool resOk = result == LE_OK && posCtrlRef != NULL;
   if (resOk && isAccurate) {
@@ -73,8 +75,8 @@ static void getLocation(le_timer_Ref_t timerRef) {
     lastReading.horizAccuracy = (double)rawHoriz;
     lastReading.datetime = GetCurrentTimestamp();
     LE_INFO("Got reading...");
-    LE_INFO("lat: %f, long: %f, horiz: %f",
-            lastReading.lat, lastReading.lon, lastReading.horizAccuracy);
+    LE_INFO("lat: %f, long: %f, horiz: %f", lastReading.lat, lastReading.lon,
+            lastReading.horizAccuracy);
     le_timer_SetMsInterval(timerRef, POLL_PERIOD_SEC * 1000);
   } else {
     if (!isAccurate && resOk) {
