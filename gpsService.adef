@@ -1,0 +1,32 @@
+sandboxed: true
+version: 1.1.0
+start: auto
+
+executables:
+{
+  gpsMonitor = ( location )
+}
+
+processes:
+{
+  envVars:
+  {
+    LE_LOG_LEVEL = DEBUG
+  }
+  run:
+  {
+     ( gpsMonitor )
+  }
+  faultAction: restartApp
+}
+
+bindings:
+{
+  gpsMonitor.location.le_posCtrl -> positioningService.le_posCtrl
+  gpsMonitor.location.le_pos -> positioningService.le_pos
+}
+
+extern:
+{
+  gpsMonitor.location.brnkl_gps
+}
