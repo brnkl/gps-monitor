@@ -4,7 +4,7 @@ start: auto
 
 executables:
 {
-  gpsMonitor = ( location )
+  gpsService = ( location )
 }
 
 processes:
@@ -15,18 +15,18 @@ processes:
   }
   run:
   {
-     ( gpsMonitor )
+     ( gpsService )
   }
   faultAction: restartApp
 }
 
 bindings:
 {
-  gpsMonitor.location.le_posCtrl -> positioningService.le_posCtrl
-  gpsMonitor.location.le_pos -> positioningService.le_pos
+  gpsService.location.le_posCtrl -> positioningService.le_posCtrl
+  gpsService.location.le_pos -> positioningService.le_pos
 }
 
 extern:
 {
-  gpsMonitor.location.brnkl_gps
+  gpsService.location.brnkl_gps
 }
