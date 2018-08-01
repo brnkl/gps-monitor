@@ -1,5 +1,5 @@
 sandboxed: true
-version: 2.5.0
+version: 2.14.1
 start: auto
 
 executables:
