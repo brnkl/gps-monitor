@@ -78,8 +78,8 @@ static void getLocation(le_timer_Ref_t timerRef) {
     lastReading.datetime = GetCurrentTimestamp();
     le_timer_SetMsInterval(timerRef, POLL_PERIOD_SEC * 1000);
   } else {
-    int now = util_getUnixDatetime()
-    if (now - lastErrorDatetime >= DEBOUNCE_ERRORS_SEC) {
+    int now = util_getUnixDatetime() if (now - lastErrorDatetime >=
+                                         DEBOUNCE_ERRORS_SEC) {
       lastErrorDatetime = now;
       if (!isAccurate && resOk) {
         LE_INFO("Rejected for accuracy (%d m)", rawHoriz);
