@@ -1,7 +1,6 @@
 #include "interfaces.h"
 #include "legato.h"
 #include "util.h"
-// nu hash
 
 // Used to convert GPS int to double
 #define GPS_DECIMAL_SHIFT 6
@@ -9,9 +8,11 @@
   10                            // TODO validate that this is realistic
 #define POLL_PERIOD_SEC 2 * 60  // 2 minutes
 #define RETRY_PERIOD_SEC 1
+#define DEBOUNCE_ERRORS_SEC 60
 
 static le_posCtrl_ActivationRef_t posCtrlRef;
 static le_timer_Ref_t pollingTimer;
+static int lastErrorDatetime = 0;
 static struct {
   double lat;
   double lon;
@@ -75,16 +76,18 @@ static void getLocation(le_timer_Ref_t timerRef) {
     // no conversion required for horizontal accuracy
     lastReading.horizAccuracy = (double)rawHoriz;
     lastReading.datetime = GetCurrentTimestamp();
-    LE_INFO("Got reading...");
-    LE_INFO("lat: %f, long: %f, horiz: %f", lastReading.lat, lastReading.lon,
-            lastReading.horizAccuracy);
     le_timer_SetMsInterval(timerRef, POLL_PERIOD_SEC * 1000);
   } else {
-    if (!isAccurate && resOk) {
-      LE_INFO("Rejected for accuracy (%d m)", rawHoriz);
+    int now = util_getUnixDatetime()
+    if (now - lastErrorDatetime >= DEBOUNCE_ERRORS_SEC) {
+      lastErrorDatetime = now;
+      if (!isAccurate && resOk) {
+        LE_INFO("Rejected for accuracy (%d m)", rawHoriz);
+      }
+      LE_INFO("Failed to get reading... retrying in %d seconds",
+              RETRY_PERIOD_SEC);
     }
-    LE_INFO("Failed to get reading... retrying in %d seconds",
-            RETRY_PERIOD_SEC);
+
     le_timer_SetMsInterval(timerRef, RETRY_PERIOD_SEC * 1000);
   }
   le_timer_Start(timerRef);
