@@ -63,9 +63,9 @@ le_result_t brnkl_gps_getCurrentLocation(double* latitude,
 static void getLocation(le_timer_Ref_t timerRef) {
   le_timer_Stop(timerRef);
   int32_t rawLat, rawLon, rawHoriz;
-  le_result_t result = le_pos_Get2DLocation(&rawLat, &rawLon, &rawHoriz);
   if (posCtrlRef == NULL)
     posCtrlRef = le_posCtrl_Request();
+  le_result_t result = le_pos_Get2DLocation(&rawLat, &rawLon, &rawHoriz);
   bool isAccurate = rawHoriz <= MIN_REQUIRED_HORIZ_ACCURACY_METRES;
   bool resOk = result == LE_OK && posCtrlRef != NULL;
   if (resOk && isAccurate) {
