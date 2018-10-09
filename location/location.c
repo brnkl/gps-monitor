@@ -5,8 +5,8 @@
 // Used to convert GPS int to double
 #define GPS_DECIMAL_SHIFT 6
 #define MIN_REQUIRED_HORIZ_ACCURACY_METRES \
-  10                            // TODO validate that this is realistic
-#define POLL_PERIOD_SEC 2 * 60  // 2 minutes
+  10  // TODO validate that this is realistic
+#define POLL_PERIOD_SEC 10
 #define RETRY_PERIOD_SEC 1
 #define DEBOUNCE_ERRORS_SEC 60
 
