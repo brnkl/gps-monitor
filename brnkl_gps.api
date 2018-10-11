@@ -1,1 +1,6 @@
-FUNCTION le_result_t getCurrentLocation (double latitude OUT, double longitude OUT, double horizontalAccuracy OUT, uint64 readingTimestamp OUT);
+FUNCTION le_result_t getCurrentLocation (
+  double latitude OUT,
+  double longitude OUT,
+  double horizontalAccuracy OUT,
+  uint64 readingTimestamp OUT
+);
